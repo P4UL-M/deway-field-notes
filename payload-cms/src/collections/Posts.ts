@@ -147,6 +147,7 @@ const normalizeMessages = (value: unknown): Array<Record<string, unknown>> => {
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
+  orderable: true,
   labels: {
     singular: 'Publication',
     plural: 'Publications',
