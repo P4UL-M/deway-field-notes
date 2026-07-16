@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Deway Field Notes</title>
+  <rect width="64" height="64" rx="14" fill="#1d1c19"/>
+  <rect x="1" y="1" width="62" height="62" rx="13" fill="none" stroke="#3a3731" stroke-width="2"/>
+  <circle cx="11" cy="11" r="4" fill="#df7f5e"/>
+  <text
+    x="32"
+    y="43"
+    fill="#eee9df"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="30"
+    text-anchor="middle"
+    letter-spacing="-1.5"
+  >PM</text>
+</svg>

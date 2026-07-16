@@ -41,7 +41,15 @@ const titleStyle = [
 ].join('; ');
 ---
 
-<BaseLayout title={`${post.title} - Deway — Field Notes`} description={post.summary}>
+<BaseLayout
+  title={`${post.title} - Deway — Field Notes`}
+  description={post.summary}
+  canonical={`/notes/${post.slug}/`}
+  image={preview ? '/og/default.png' : `/og/${post.slug}.png`}
+  imageAlt={`${post.title} — Deway Field Notes`}
+  type="article"
+  publishedAt={post.published_at}
+>
   {preview && <div class="preview-banner">Aperçu Payload · brouillon non public</div>}
   <div class="reading-progress" aria-hidden="true"><span data-reading-progress></span></div>
   <SiteHeader />
