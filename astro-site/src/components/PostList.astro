@@ -1,0 +1,59 @@
+---
+import type { Post } from '../lib/types';
+
+interface Props {
+  posts: Post[];
+}
+
+const { posts } = Astro.props;
+
+const formatDate = (value: string) => new Date(value).toISOString().slice(0, 10);
+---
+
+<div class="section-label">
+  <span>RECENT SESSIONS</span>
+  <span>ARTICLE + SESSION</span>
+</div>
+
+<div class="session-list">
+  {posts.length === 0 && (
+    <div class="session-list__empty">
+      <span aria-hidden="true">~</span>
+      <p>Aucune note publiée pour le moment.</p>
+    </div>
+  )}
+  {posts.map((post) => {
+    const commandCount = post.messages.filter((message) => Boolean(message.code)).length;
+    return (
+      <article class="session-row" data-entry-type={post.type}>
+        <a class="session-link" href={`/notes/${post.slug}/`}>
+          <span class="row-prompt" aria-hidden="true">›</span>
+          <span class="row-main">
+            <span class="row-title">{post.title}</span>
+            <span class="row-summary">{post.summary}</span>
+            <span class="row-meta">
+              <strong>{post.type}</strong>
+              <span aria-hidden="true">·</span>
+              <time datetime={post.published_at}>{formatDate(post.published_at)}</time>
+              {post.type === 'session' && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>{post.messages.length} messages</span>
+                  {commandCount > 0 && (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span>{commandCount} {commandCount === 1 ? 'command' : 'commands'}</span>
+                    </>
+                  )}
+                </>
+              )}
+              <span aria-hidden="true">·</span>
+              <span>{post.reading_time} min</span>
+            </span>
+          </span>
+          <span class="row-arrow" aria-hidden="true">↗</span>
+        </a>
+      </article>
+    );
+  })}
+</div>

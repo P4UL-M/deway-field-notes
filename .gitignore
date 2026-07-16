@@ -1,0 +1,39 @@
+# Dependencies and build output
+**/node_modules/
+astro-site/.astro/
+astro-site/dist/
+payload-cms/.next/
+payload-cms/dist/
+**/*.tsbuildinfo
+
+# Secrets and local configuration
+.env
+**/.env
+**/.env.local
+**/.env.*.local
+!**/.env.example
+
+# Databases, uploads and persistent runtime data
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+cms/data/
+cms/uploads/*
+!cms/uploads/.gitkeep
+payload-cms/media/*
+!payload-cms/media/.gitkeep
+
+# Generated QA and browser artifacts
+.playwright-cli/
+output/
+outputs/
+work/
+payload-cms/import-media/
+
+# Superseded local copies
+* 2.*
+
+# Miscellaneous
+*.log
+.DS_Store

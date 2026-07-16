@@ -1,0 +1,19 @@
+{
+  "name": "deway-field-notes",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Démonstration Astro + Payload du blog Deway Field Notes.",
+  "scripts": {
+    "dev": "npm --prefix astro-site run dev",
+    "build": "npm run cms:check && npm --prefix astro-site run build",
+    "preview": "npm --prefix astro-site run preview",
+    "cms:install": "npm --prefix payload-cms install",
+    "cms:start": "npm --prefix payload-cms run dev",
+    "cms:seed": "npm --prefix payload-cms run seed",
+    "cms:types": "npm --prefix payload-cms run generate:types",
+    "cms:importmap": "npm --prefix payload-cms run generate:importmap",
+    "cms:check": "npm run cms:importmap && npm run cms:types && npm --prefix payload-cms run typecheck",
+    "cms:build": "npm --prefix payload-cms run build",
+    "qa": "node work/qa-astro.cjs"
+  }
+}

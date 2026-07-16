@@ -1,0 +1,90 @@
+---
+import type { ContentWidget } from '../lib/types';
+
+interface Props {
+  widgets?: ContentWidget[];
+  context?: 'article' | 'session';
+}
+
+const { widgets = [], context = 'article' } = Astro.props;
+const toneLabels = {
+  note: 'field note',
+  decision: 'decision recorded',
+  warning: 'attention',
+  success: 'check passed',
+};
+---
+
+{widgets.length > 0 && (
+  <div class:list={['content-widgets', `content-widgets--${context}`]}>
+    {widgets.map((widget, index) => (
+      <Fragment>
+        {widget.type === 'media' && widget.media && (
+          <figure class:list={['content-widget', 'media-widget', `media-widget--${widget.media_layout || 'inline'}`]} data-reveal>
+            <div class="media-widget__frame">
+              {widget.media.mime_type.startsWith('video/') ? (
+                <video controls preload="metadata" src={widget.media.url} aria-label={widget.media.alt || widget.caption || 'Vidéo intégrée'}></video>
+              ) : (
+                <img
+                  src={widget.media.url}
+                  alt={widget.media.alt}
+                  width={widget.media.width || undefined}
+                  height={widget.media.height || undefined}
+                  loading="lazy"
+                  decoding="async"
+                />
+              )}
+            </div>
+            {widget.caption && (
+              <figcaption><span>{String(index + 1).padStart(2, '0')}</span>{widget.caption}</figcaption>
+            )}
+          </figure>
+        )}
+
+        {widget.type === 'callout' && (
+          <aside class:list={['content-widget', 'callout-widget', `callout-widget--${widget.tone || 'note'}`]} data-reveal>
+            <div class="callout-widget__signal" aria-hidden="true">{widget.tone === 'decision' ? '✓' : widget.tone === 'warning' ? '!' : widget.tone === 'success' ? '↗' : '*'}</div>
+            <div>
+              <p class="callout-widget__label">{widget.eyebrow || toneLabels[widget.tone || 'note']}</p>
+              {widget.title && <h3>{widget.title}</h3>}
+              {widget.text && <p>{widget.text}</p>}
+            </div>
+          </aside>
+        )}
+
+        {widget.type === 'metrics' && widget.metrics && widget.metrics.length > 0 && (
+          <dl class="content-widget metrics-widget" data-reveal>
+            {widget.metrics.map((metric) => (
+              <div><dt>{metric.label}</dt><dd>{metric.value}</dd></div>
+            ))}
+          </dl>
+        )}
+
+        {widget.type === 'steps' && widget.steps && widget.steps.length > 0 && (
+          <section class="content-widget steps-widget" data-reveal>
+            {widget.title && <p class="steps-widget__title">{widget.title}</p>}
+            <ol>
+              {widget.steps.map((step, stepIndex) => (
+                <li>
+                  <span>{String(stepIndex + 1).padStart(2, '0')}</span>
+                  <div><strong>{step.title}</strong>{step.text && <p>{step.text}</p>}</div>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
+        {widget.type === 'resource' && widget.url && (
+          <a class="content-widget resource-widget" href={widget.url} target="_blank" rel="noreferrer" data-reveal>
+            <div>
+              <span>{widget.eyebrow || 'external resource'}</span>
+              <strong>{widget.title || widget.url}</strong>
+              {widget.text && <p>{widget.text}</p>}
+            </div>
+            <b>{widget.link_label || 'ouvrir la ressource'} ↗</b>
+          </a>
+        )}
+      </Fragment>
+    ))}
+  </div>
+)}

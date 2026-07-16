@@ -1,0 +1,124 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import type { Post } from '../lib/types';
+
+interface Props {
+  post: Post;
+  preview?: boolean;
+  previousPost?: Post;
+  nextPost?: Post;
+}
+
+const { post, preview = false, previousPost, nextPost } = Astro.props;
+
+const publishedDate = new Date(post.published_at);
+const isoDate = publishedDate.toISOString().slice(0, 10);
+const day = publishedDate.getDate();
+const suffix = day % 10 === 1 && day !== 11 ? 'st'
+  : day % 10 === 2 && day !== 12 ? 'nd'
+    : day % 10 === 3 && day !== 13 ? 'rd'
+      : 'th';
+const month = new Intl.DateTimeFormat('en-GB', { month: 'short' }).format(publishedDate);
+const date = post.type === 'session' ? isoDate : `${month} ${day}${suffix} ${publishedDate.getFullYear()}`;
+const commandCount = post.messages.filter((message) => Boolean(message.code)).length;
+const titleLength = Array.from(post.title.trim()).length;
+const titleScale = titleLength <= 48 ? 1 : Math.max(0.7, 1 - (titleLength - 48) * 0.009);
+const mobileTitleScale = titleLength <= 52 ? 1 : Math.max(0.86, 1 - (titleLength - 52) * 0.004);
+const titleBase = post.type === 'session'
+  ? { min: 48, fluid: 7.3, max: 82 }
+  : { min: 49, fluid: 7, max: 78 };
+const titleStyle = [
+  `--post-title-min: ${(titleBase.min * titleScale).toFixed(2)}px`,
+  `--post-title-fluid: ${(titleBase.fluid * titleScale).toFixed(3)}vw`,
+  `--post-title-max: ${(titleBase.max * titleScale).toFixed(2)}px`,
+  `--post-title-tablet-min: ${(38 * mobileTitleScale).toFixed(2)}px`,
+  `--post-title-tablet-fluid: ${(7.2 * mobileTitleScale).toFixed(3)}vw`,
+  `--post-title-tablet-max: ${(52 * mobileTitleScale).toFixed(2)}px`,
+  `--post-title-mobile-min: ${(32 * mobileTitleScale).toFixed(2)}px`,
+  `--post-title-mobile-fluid: ${(9.4 * mobileTitleScale).toFixed(3)}vw`,
+  `--post-title-mobile-max: ${(40 * mobileTitleScale).toFixed(2)}px`,
+].join('; ');
+---
+
+<BaseLayout
+  title={`${post.title} - Deway — Field Notes`}
+  description={post.summary}
+  canonical={`/notes/${post.slug}/`}
+  image={preview ? '/og/default.png' : `/og/${post.slug}.png`}
+  imageAlt={`${post.title} — Deway Field Notes`}
+  type="article"
+  publishedAt={post.published_at}
+>
+  {preview && <div class="preview-banner">Aperçu Payload · brouillon non public</div>}
+  <div class="reading-progress" aria-hidden="true"><span data-reading-progress></span></div>
+  <SiteHeader />
+  <main id="main" class="shell post-page">
+    <article class={post.type === 'session' ? 'session-post' : 'classic-post'}>
+      <header class={post.type === 'session' ? 'session-heading' : 'post-header'}>
+        <div class="post-hero-grid">
+          <aside class="post-hero__rail" aria-label="Informations de publication">
+            <div class="post-status"><i></i>{post.type === 'session' ? 'session closed' : 'published'}</div>
+            <dl>
+              <div><dt>Format</dt><dd>{post.type}</dd></div>
+              <div><dt>Date</dt><dd><time datetime={post.published_at}>{date}</time></dd></div>
+              {post.type === 'session' && <div><dt>Messages</dt><dd>{post.messages.length}</dd></div>}
+              {post.type === 'session' && <div><dt>Commands</dt><dd>{commandCount}</dd></div>}
+              <div><dt>Reading</dt><dd>{post.reading_time} min</dd></div>
+            </dl>
+          </aside>
+          <div class="post-hero__main" style={titleStyle} data-title-length={titleLength}>
+            {post.type === 'session' && (
+              <div class="session-command">
+                <span>~/sessions</span>
+                <span>/</span>
+                <strong>{post.slug}</strong>
+              </div>
+            )}
+            <p class="eyebrow">{post.type.toUpperCase()} / {post.type === 'session' ? 'working transcript' : 'field note'}</p>
+            <h1>{post.title}</h1>
+            {post.type === 'session' ? (
+              <p class="session-deck">{post.summary}</p>
+            ) : (
+              <div class="standfirst"><p>{post.summary}</p></div>
+            )}
+            {post.type === 'article' && <p class="post-author">Written by Paul Mairesse</p>}
+          </div>
+        </div>
+      </header>
+
+      {post.type === 'article' ? (
+        <div class="article-layout">
+          <aside class="article-outline" aria-label="Sommaire">
+            <span>ON THIS PAGE</span>
+            <nav data-article-toc></nav>
+          </aside>
+          <div class="article-content"><slot /></div>
+        </div>
+      ) : (
+        <slot />
+      )}
+    </article>
+
+    {(previousPost || nextPost) && (
+      <nav class="post-navigation" aria-label="Adjacent posts">
+        {previousPost ? (
+          <a class="post-navigation__item post-navigation__item--previous" href={`/notes/${previousPost.slug}/`}>
+            <span><b aria-hidden="true">←</b> previous</span>
+            <strong>{previousPost.title}</strong>
+          </a>
+        ) : <span class="post-navigation__empty" aria-hidden="true"></span>}
+        {nextPost ? (
+          <a class="post-navigation__item post-navigation__item--next" href={`/notes/${nextPost.slug}/`}>
+            <span>next <b aria-hidden="true">→</b></span>
+            <strong>{nextPost.title}</strong>
+          </a>
+        ) : <span class="post-navigation__empty" aria-hidden="true"></span>}
+      </nav>
+    )}
+  </main>
+  <footer class="site-footer shell">
+    <span>EOF</span>
+    <a href="/">Deway — Field Notes</a>
+  </footer>
+</BaseLayout>

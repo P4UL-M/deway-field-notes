@@ -1,0 +1,30 @@
+---
+import PostLayout from '../../layouts/PostLayout.astro';
+import SessionTranscript from '../../components/SessionTranscript.astro';
+import ContentWidgets from '../../components/ContentWidgets.astro';
+import { getPublishedPosts } from '../../lib/payload';
+
+export const prerender = false;
+
+const posts = await getPublishedPosts();
+const postIndex = posts.findIndex((candidate) => candidate.slug === Astro.params.slug);
+
+if (postIndex === -1) {
+  return new Response('Note introuvable', { status: 404 });
+}
+
+const post = posts[postIndex];
+const previousPost = posts[postIndex + 1];
+const nextPost = posts[postIndex - 1];
+---
+
+<PostLayout post={post} previousPost={previousPost} nextPost={nextPost}>
+  {post.type === 'session' ? (
+    <SessionTranscript messages={post.messages} />
+  ) : (
+    <>
+      <div class="prose" set:html={post.body || ''} />
+      <ContentWidgets widgets={post.widgets} context="article" />
+    </>
+  )}
+</PostLayout>

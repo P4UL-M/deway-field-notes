@@ -1,0 +1,21 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import PostList from '../components/PostList.astro';
+import { getPublishedPosts } from '../lib/payload';
+
+export const prerender = false;
+
+const posts = await getPublishedPosts();
+---
+
+<BaseLayout>
+  <SiteHeader />
+  <main id="main" class="shell listing-page">
+    <PostList posts={posts} />
+  </main>
+  <footer class="site-footer shell">
+    <span>EOF</span>
+    <a href="/">Deway — Field Notes</a>
+  </footer>
+</BaseLayout>

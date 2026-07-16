@@ -1,0 +1,65 @@
+---
+import type { SessionMessage } from '../lib/types';
+import ContentWidgets from './ContentWidgets.astro';
+
+interface Props {
+  messages: SessionMessage[];
+}
+
+const { messages } = Astro.props;
+
+const labels = {
+  user: 'paul',
+  assistant: 'agent',
+};
+---
+
+<div class="transcript-shell">
+  <div class="session-transcript" aria-label="Session transcript">
+    <header class="transcript-heading">
+      <span><i></i> transcript / start</span>
+      <span>{messages.length} messages</span>
+    </header>
+
+    {messages.map((message, index) => (
+      <section id={`message-${index + 1}`} class:list={["session-message", `session-message--${message.role}`, message.kind !== 'message' && `session-message--${message.kind}`]} data-reveal>
+        <div class="session-message__meta">
+          <a class="session-message__number" href={`#message-${index + 1}`} aria-label={`Lien vers le message ${index + 1}`}>
+            {String(index + 1).padStart(2, '0')}
+          </a>
+          <span class="session-message__speaker">{message.label}</span>
+          <span class="session-message__role">{labels[message.role]}{message.kind !== 'message' && ` · ${message.kind === 'tool' ? 'tool call' : 'note'}`}</span>
+        </div>
+        {message.role === 'assistant' && (
+          <div class="session-message__skeleton" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        )}
+        <div class="session-message__body">
+          {message.kind === 'tool' ? (
+            <>
+              <div class="terminal-block">
+                <div class="terminal-block__top"><span>tool call</span></div>
+                {message.code && <pre><code>{message.code}</code></pre>}
+              </div>
+              <ContentWidgets widgets={message.widgets} context="session" />
+            </>
+          ) : (
+            <>
+              <Fragment set:html={message.content} />
+              {message.code && <pre><code>{message.code}</code></pre>}
+              <ContentWidgets widgets={message.widgets} context="session" />
+            </>
+          )}
+        </div>
+      </section>
+    ))}
+
+    <footer class="session-end">
+      <span>EOF · session closed</span>
+      <a href="#main">return to top ↑</a>
+    </footer>
+  </div>
+</div>
