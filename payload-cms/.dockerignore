@@ -1,0 +1,8 @@
+.env
+.next
+media
+node_modules
+payload-cms.db
+test-results
+playwright-report
+*.log

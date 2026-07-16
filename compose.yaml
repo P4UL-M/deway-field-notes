@@ -1,0 +1,136 @@
+name: deway-blog
+
+services:
+  blog:
+    image: nginx:1.28-alpine
+    container_name: deway-blog
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8110:80"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      astro:
+        condition: service_healthy
+      payload:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 4s
+      retries: 4
+
+  astro:
+    build:
+      context: ./astro-site
+    container_name: deway-blog-astro
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      PORT: 4321
+      PAYLOAD_URL: http://payload:3000
+      PUBLIC_PAYLOAD_URL: https://blog.deway.fr
+      PUBLIC_SITE_URL: https://blog.deway.fr
+      PREVIEW_SECRET: ${PREVIEW_SECRET}
+      ALLOW_DEMO_CONTENT: "false"
+    depends_on:
+      payload:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:4321/"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 15s
+
+  payload:
+    build:
+      context: ./payload-cms
+      target: runner
+    container_name: deway-blog-payload
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://payload:${PAYLOAD_DB_PASSWORD}@analytics-db:5432/payload
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      PAYLOAD_DB_PUSH: "true"
+      PREVIEW_SECRET: ${PREVIEW_SECRET}
+      FRONTEND_URL: https://blog.deway.fr
+      PAYLOAD_PUBLIC_SERVER_URL: https://blog.deway.fr
+      MEDIA_DIR: /app/media
+    volumes:
+      - payload-media:/app/media
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/posts?limit=1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 45s
+
+  payload-init:
+    profiles: ["init"]
+    build:
+      context: ./payload-cms
+      target: initializer
+    environment:
+      DATABASE_URL: postgresql://payload:${PAYLOAD_DB_PASSWORD}@analytics-db:5432/payload
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      PREVIEW_SECRET: ${PREVIEW_SECRET}
+      FRONTEND_URL: https://blog.deway.fr
+      PAYLOAD_PUBLIC_SERVER_URL: https://blog.deway.fr
+      MEDIA_DIR: /app/media
+    volumes:
+      - payload-media:/app/media
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+
+  analytics:
+    image: docker.umami.is/umami-software/umami:postgresql-latest
+    container_name: deway-analytics
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8111:3000"
+    environment:
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@analytics-db:5432/umami
+      APP_SECRET: ${UMAMI_APP_SECRET}
+      DISABLE_TELEMETRY: "1"
+      DISABLE_UPDATES: "1"
+      TRACKER_SCRIPT_NAME: insight.js
+      COLLECT_API_ENDPOINT: /api/event
+      CLIENT_IP_HEADER: X-Forwarded-For
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/heartbeat').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 6s
+      retries: 10
+      start_period: 45s
+
+  analytics-db:
+    image: postgres:16-alpine
+    container_name: deway-analytics-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD}
+      TZ: UTC
+    volumes:
+      - umami-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umami -d umami"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+volumes:
+  umami-data:
+    name: deway-umami-data
+  payload-media:
+    name: deway-payload-media
