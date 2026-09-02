@@ -78,6 +78,54 @@ const memoryDiagramHTML = (variant = 'retrieval') => {
   </figure>`
 }
 
+type InlineMetric = { value?: string; label?: string }
+type InlineStep = { title?: string; text?: string }
+
+const inlineMetricsHTML = (metrics: InlineMetric[] = []) => {
+  const items = metrics
+    .map(
+      (metric) =>
+        `<div><dt>${escapeHTML(metric.label || '')}</dt><dd>${escapeHTML(metric.value || '')}</dd></div>`,
+    )
+    .join('')
+
+  return `<dl class="content-widget inline-widget metrics-widget" data-reveal>${items}</dl>`
+}
+
+const inlineCalloutHTML = (fields: { tone?: string; eyebrow?: string; title?: string; text?: string } = {}) => {
+  const tone = ['note', 'decision', 'warning', 'success'].includes(fields.tone || '')
+    ? fields.tone || 'note'
+    : 'note'
+  const signal = tone === 'decision' ? '✓' : tone === 'warning' ? '!' : tone === 'success' ? '↗' : '*'
+  const label = fields.eyebrow || (tone === 'decision' ? 'decision recorded' : tone === 'warning' ? 'attention' : tone === 'success' ? 'check passed' : 'field note')
+  const title = fields.title ? `<h3>${escapeHTML(fields.title)}</h3>` : ''
+  const text = fields.text ? `<p>${escapeHTML(fields.text)}</p>` : ''
+
+  return `<aside class="content-widget inline-widget callout-widget callout-widget--${tone}" data-reveal><div class="callout-widget__signal" aria-hidden="true">${signal}</div><div><p class="callout-widget__label">${escapeHTML(label)}</p>${title}${text}</div></aside>`
+}
+
+const inlineStepsHTML = (fields: { title?: string; steps?: InlineStep[] } = {}) => {
+  const title = fields.title ? `<p class="steps-widget__title">${escapeHTML(fields.title)}</p>` : ''
+  const steps = (fields.steps || [])
+    .map((step, index) => {
+      const text = step.text ? `<p>${escapeHTML(step.text)}</p>` : ''
+      return `<li><span>${String(index + 1).padStart(2, '0')}</span><div><strong>${escapeHTML(step.title || '')}</strong>${text}</div></li>`
+    })
+    .join('')
+
+  return `<section class="content-widget inline-widget steps-widget" data-reveal>${title}<ol>${steps}</ol></section>`
+}
+
+const inlineResourceHTML = (fields: { eyebrow?: string; title?: string; text?: string; url?: string; linkLabel?: string } = {}) => {
+  const url = escapeHTML(fields.url || '')
+  const eyebrow = escapeHTML(fields.eyebrow || 'external resource')
+  const title = escapeHTML(fields.title || fields.url || '')
+  const text = fields.text ? `<p>${escapeHTML(fields.text)}</p>` : ''
+  const linkLabel = escapeHTML(fields.linkLabel || 'ouvrir la ressource')
+
+  return `<a class="content-widget inline-widget resource-widget" href="${url}" target="_blank" rel="noreferrer" data-reveal><div><span>${eyebrow}</span><strong>${title}</strong>${text}</div><b>${linkLabel} ↗</b></a>`
+}
+
 const codeBlockConverters = ({ defaultConverters }: { defaultConverters: Record<string, unknown> }) => ({
   ...defaultConverters,
   blocks: {
@@ -88,6 +136,14 @@ const codeBlockConverters = ({ defaultConverters }: { defaultConverters: Record<
     },
     MemoryDiagram: ({ node }: { node: { fields?: { variant?: string } } }) =>
       memoryDiagramHTML(node.fields?.variant),
+    InlineMetrics: ({ node }: { node: { fields?: { metrics?: InlineMetric[] } } }) =>
+      inlineMetricsHTML(node.fields?.metrics),
+    InlineCallout: ({ node }: { node: { fields?: { tone?: string; eyebrow?: string; title?: string; text?: string } } }) =>
+      inlineCalloutHTML(node.fields),
+    InlineSteps: ({ node }: { node: { fields?: { title?: string; steps?: InlineStep[] } } }) =>
+      inlineStepsHTML(node.fields),
+    InlineResource: ({ node }: { node: { fields?: { eyebrow?: string; title?: string; text?: string; url?: string; linkLabel?: string } } }) =>
+      inlineResourceHTML(node.fields),
   },
 })
 

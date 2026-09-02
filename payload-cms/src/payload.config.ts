@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { MemoryDiagram } from './blocks/MemoryDiagram'
+import { InlineCallout, InlineMetrics, InlineResource, InlineSteps } from './blocks/InlineWidgets'
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { Posts } from './collections/Posts'
@@ -39,7 +40,16 @@ export default buildConfig({
     features: ({ defaultFeatures }) => [
       ...defaultFeatures.filter((feature) => feature.key !== 'upload'),
       UploadFeature({ maxDepth: 0 }),
-      BlocksFeature({ blocks: [CodeBlock({ defaultLanguage: 'shell' }), MemoryDiagram] }),
+      BlocksFeature({
+        blocks: [
+          CodeBlock({ defaultLanguage: 'shell' }),
+          MemoryDiagram,
+          InlineMetrics,
+          InlineCallout,
+          InlineSteps,
+          InlineResource,
+        ],
+      }),
     ],
   }),
   secret: process.env.PAYLOAD_SECRET || '',

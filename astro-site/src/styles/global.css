@@ -859,6 +859,11 @@ h1 { max-width: 780px; margin: 0; font-family: var(--serif); font-size: clamp(40
   margin: 0;
 }
 
+.prose .inline-widget {
+  width: 100%;
+  margin: 2.4em 0;
+}
+
 .media-widget__frame {
   position: relative;
   overflow: hidden;

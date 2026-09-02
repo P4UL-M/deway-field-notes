@@ -201,7 +201,7 @@ export interface Post {
         role: 'user' | 'assistant';
         kind?: ('message' | 'tool' | 'note') | null;
         label: string;
-        content: {
+        content?: {
           root: {
             type: string;
             children: {
@@ -215,7 +215,7 @@ export interface Post {
             version: number;
           };
           [k: string]: unknown;
-        };
+        } | null;
         contentHTML?: string | null;
         /**
          * Optionnel. Utilisé surtout pour les Tool calls.
