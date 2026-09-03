@@ -190,7 +190,7 @@ export async function getPublishedPosts(): Promise<Post[]> {
     const query = new URLSearchParams({
       depth: '1',
       limit: '100',
-      sort: '-publishedAt',
+      sort: '_order',
       'where[_status][equals]': 'published',
     });
     const result = await request<PayloadListResponse<PayloadPost>>(`/api/posts?${query}`);
