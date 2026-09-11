@@ -19,6 +19,16 @@ const databaseURL = process.env.DATABASE_URL || ''
 export default buildConfig({
   admin: {
     user: Users.slug,
+    components: {
+      afterNavLinks: ['/components/ArchivesNavLink#ArchivesNavLink'],
+      views: {
+        archives: {
+          Component: '/components/ArchivesView#ArchivesView',
+          exact: true,
+          path: '/archives',
+        },
+      },
+    },
     meta: {
       titleSuffix: ' — Deway Field Notes',
     },

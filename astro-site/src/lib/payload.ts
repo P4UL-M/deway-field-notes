@@ -49,6 +49,7 @@ interface PayloadWidget {
 interface PayloadPost {
   id: number | string;
   _status?: 'draft' | 'published';
+  archived?: boolean;
   type?: PostType;
   title?: string;
   slug?: string;
@@ -192,6 +193,7 @@ export async function getPublishedPosts(): Promise<Post[]> {
       limit: '100',
       sort: '_order',
       'where[_status][equals]': 'published',
+      'where[archived][not_equals]': 'true',
     });
     const result = await request<PayloadListResponse<PayloadPost>>(`/api/posts?${query}`);
     return result.docs.map(normalizePost);

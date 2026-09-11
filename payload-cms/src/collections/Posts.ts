@@ -1,5 +1,5 @@
 import { lexicalHTMLField } from '@payloadcms/richtext-lexical'
-import type { CollectionConfig, PayloadRequest } from 'payload'
+import type { CollectionConfig, PayloadRequest, Where } from 'payload'
 
 import { contentWidgets } from '../fields/contentWidgets'
 import { calculateReadingTime } from '../utilities/readingTime'
@@ -17,6 +17,14 @@ const canPreview = (req: PayloadRequest) => {
   if (req.user) return true
 
   return req.headers.get('x-payload-preview-secret') === process.env.PREVIEW_SECRET
+}
+
+const activePostFilter: Where = { archived: { not_equals: true } }
+const publicPostFilter: Where = {
+  and: [
+    { _status: { equals: 'published' } },
+    activePostFilter,
+  ],
 }
 
 const escapeHTML = (value: string) =>
@@ -213,6 +221,7 @@ export const Posts: CollectionConfig = {
     defaultColumns: ['title', 'type', '_status', 'publishedAt'],
     description: 'Articles classiques et sessions partagent la même chronologie.',
     group: 'Contenu',
+    baseFilter: () => activePostFilter,
     preview: (doc) => {
       if (!doc.id) return null
       const frontend = process.env.FRONTEND_URL || 'http://localhost:4321'
@@ -238,7 +247,7 @@ export const Posts: CollectionConfig = {
     delete: ({ req }) => Boolean(req.user),
     read: ({ req }) => {
       if (canPreview(req)) return true
-      return { _status: { equals: 'published' } }
+      return publicPostFilter
     },
     update: ({ req }) => Boolean(req.user),
   },
@@ -269,6 +278,12 @@ export const Posts: CollectionConfig = {
         return data
       },
     ],
+    beforeChange: [
+      ({ data }) => {
+        if (data.archived) data._status = 'draft'
+        return data
+      },
+    ],
   },
   versions: {
     drafts: {
@@ -279,6 +294,17 @@ export const Posts: CollectionConfig = {
     maxPerDoc: 40,
   },
   fields: [
+    {
+      name: 'archived',
+      label: 'Archivé',
+      type: 'checkbox',
+      defaultValue: false,
+      index: true,
+      admin: {
+        description: 'Conservé en base, masqué des publications et impossible à publier.',
+        position: 'sidebar',
+      },
+    },
     {
       name: 'type',
       label: 'Format',

@@ -127,6 +127,11 @@ export interface UserAuthOperations {
  */
 export interface Post {
   id: number;
+  _order?: string | null;
+  /**
+   * Conservé en base, masqué des publications et impossible à publier.
+   */
+  archived?: boolean | null;
   type: 'article' | 'session';
   title: string;
   /**
@@ -387,6 +392,8 @@ export interface PayloadMigration {
  * via the `definition` "posts_select".
  */
 export interface PostsSelect<T extends boolean = true> {
+  _order?: T;
+  archived?: T;
   type?: T;
   title?: T;
   slug?: T;
