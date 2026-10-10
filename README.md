@@ -60,12 +60,29 @@ Dans **Publications**, créer ou ouvrir un contenu :
 1. choisir `Article classique` ou `Session` ;
 2. saisir le titre et le résumé court affiché sur l’accueil ;
 3. laisser le statut sur `Brouillon` pendant l’écriture ;
-4. écrire dans l’éditeur riche pour un article ;
+4. écrire dans l’éditeur riche pour un article, avec les blocs notes, chiffres, étapes, ressources et médias (image ou vidéo, légende et largeur au choix) ;
 5. pour une session, ajouter les messages, choisir leur rôle et les réordonner ;
 6. ouvrir le panneau Live Preview pour voir le véritable thème Astro ;
 7. cliquer sur `Publier` lorsque le contenu est prêt.
 
+Les articles regroupent tout leur contenu dans l’éditeur riche. Les modules séparés restent disponibles dans chaque message de session.
+
 Payload enregistre automatiquement les brouillons et permet de comparer ou restaurer les versions. Le site public ne reçoit que les publications ayant le statut `published`.
+
+## Publication depuis une session d'agent
+
+Le skill [`deway-blog-publish`](skills/deway-blog-publish/SKILL.md) explique comment
+rédiger un article ou une session, placer les widgets et publier via API ou SSH.
+Il comprend des modèles Lexical et un helper Node.js 22 autonome. Copier son dossier
+dans `~/.codex/skills/` pour le rendre disponible aux autres sessions Codex, puis
+l'invoquer avec `$deway-blog-publish`. Les accès au blog restent fournis séparément ;
+aucun secret n'est inclus dans le skill.
+
+Vérification hors réseau des scripts :
+
+```sh
+node --test skills/deway-blog-publish/scripts/blog.test.mjs
+```
 
 ## Preview
 

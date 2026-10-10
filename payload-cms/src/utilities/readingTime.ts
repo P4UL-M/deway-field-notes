@@ -12,7 +12,8 @@ const lexicalText = (value: unknown): string => {
   const ownText = typeof record.text === 'string' ? record.text : ''
   const childrenText = lexicalText(record.children)
   const rootText = lexicalText(record.root)
-  return `${ownText} ${childrenText} ${rootText}`
+  const blockText = record.type === 'block' ? widgetText(record.fields) : ''
+  return `${ownText} ${childrenText} ${rootText} ${blockText}`
 }
 
 const widgetText = (value: unknown): string => {
@@ -32,16 +33,13 @@ const wordCount = (value: string) => value.trim().split(/\s+/u).filter(Boolean).
 export const calculateReadingTime = ({
   body,
   messages = [],
-  widgets,
 }: {
   body?: unknown
   messages?: MessageLike[] | null
-  widgets?: unknown
 }) => {
   const safeMessages = messages || []
   const prose = [
     lexicalText(body),
-    widgetText(widgets),
     ...safeMessages.map((message) => `${lexicalText(message.content)} ${widgetText(message.widgets)}`),
   ].join(' ')
 

@@ -1,8 +1,10 @@
 import { lexicalHTMLField } from '@payloadcms/richtext-lexical'
-import type { CollectionConfig, PayloadRequest, Where } from 'payload'
+import type { HTMLConverterAsync, HTMLConvertersFunctionAsync } from '@payloadcms/richtext-lexical/html-async'
+import type { CodeField, CollectionConfig, PayloadRequest, Where } from 'payload'
 
 import { contentWidgets } from '../fields/contentWidgets'
 import { calculateReadingTime } from '../utilities/readingTime'
+import type { Media } from '../payload-types'
 
 const slugify = (value: string) =>
   value
@@ -134,9 +136,37 @@ const inlineResourceHTML = (fields: { eyebrow?: string; title?: string; text?: s
   return `<a class="content-widget inline-widget resource-widget" href="${url}" target="_blank" rel="noreferrer" data-reveal><div><span>${eyebrow}</span><strong>${title}</strong>${text}</div><b>${linkLabel} ↗</b></a>`
 }
 
-const codeBlockConverters = ({ defaultConverters }: { defaultConverters: Record<string, unknown> }) => ({
+const inlineMediaConverter: HTMLConverterAsync<{
+  type: 'block'
+  fields: { media?: number | Media; caption?: string; mediaLayout?: string }
+}> = async ({ node, populate, childIndex, parent }) => {
+  const fields = node.fields
+  const media = typeof fields.media === 'object' && fields.media
+    ? fields.media
+    : fields.media && populate
+      ? await populate<Media>({ collectionSlug: 'media', id: fields.media })
+      : undefined
+  if (!media?.url) return ''
+
+  const url = escapeHTML(media.url)
+  const alt = escapeHTML(media.alt || '')
+  const layout = fields.mediaLayout === 'wide' ? 'wide' : 'inline'
+  const dimensions = `${media.width ? ` width="${media.width}"` : ''}${media.height ? ` height="${media.height}"` : ''}`
+  const content = media.mimeType?.startsWith('video/')
+    ? `<video controls preload="metadata" src="${url}" aria-label="${alt || escapeHTML(fields.caption || 'Vidéo intégrée')}"></video>`
+    : `<img src="${url}" alt="${alt}"${dimensions} loading="lazy" decoding="async" />`
+  const mediaNumber = (parent as { children?: Array<{ type: string; fields?: { blockType?: string } }> }).children
+    ?.slice(0, childIndex + 1).filter((child) => child.type === 'block' && child.fields?.blockType === 'InlineMedia').length || 1
+  const caption = fields.caption
+    ? `<figcaption><span>${String(mediaNumber).padStart(2, '0')}</span>${escapeHTML(fields.caption)}</figcaption>`
+    : ''
+  return `<figure class="content-widget inline-widget media-widget media-widget--${layout}" data-reveal><div class="media-widget__frame">${content}</div>${caption}</figure>`
+}
+
+const codeBlockConverters: HTMLConvertersFunctionAsync = ({ defaultConverters }) => ({
   ...defaultConverters,
   blocks: {
+    InlineMedia: inlineMediaConverter,
     Code: ({ node }: { node: { fields?: { code?: string; language?: string } } }) => {
       const code = escapeHTML(node.fields?.code || '')
       const language = escapeHTML(node.fields?.language || 'plaintext')
@@ -155,12 +185,33 @@ const codeBlockConverters = ({ defaultConverters }: { defaultConverters: Record<
   },
 })
 
-const normalizeLexicalUploadValues = (value: unknown): unknown => {
-  if (Array.isArray(value)) return value.map(normalizeLexicalUploadValues)
+const articleHTMLField = lexicalHTMLField({
+  converters: codeBlockConverters,
+  lexicalFieldName: 'body',
+  htmlFieldName: 'bodyHTML',
+}) as CodeField
+
+// HTML needs media documents even when the caller requests scalar relationships.
+articleHTMLField.hooks = {
+  ...articleHTMLField.hooks,
+  afterRead: articleHTMLField.hooks?.afterRead?.map((hook) => (args) =>
+    hook({ ...args, depth: Math.max(args.depth ?? 0, (args.currentDepth ?? 0) + 1) }),
+  ),
+}
+
+const normalizeLexicalMediaValues = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(normalizeLexicalMediaValues)
   if (!value || typeof value !== 'object') return value
 
   const node = value as Record<string, unknown>
   const normalized: Record<string, unknown> = { ...node }
+
+  if (normalized.type === 'block' && normalized.fields && typeof normalized.fields === 'object') {
+    const fields = normalized.fields as Record<string, unknown>
+    if (fields.blockType === 'InlineMedia' && fields.media && typeof fields.media === 'object' && 'id' in fields.media) {
+      normalized.fields = { ...fields, media: (fields.media as { id: number | string }).id }
+    }
+  }
 
   if (
     normalized.type === 'upload' &&
@@ -173,7 +224,7 @@ const normalizeLexicalUploadValues = (value: unknown): unknown => {
 
   for (const [key, child] of Object.entries(normalized)) {
     if (key !== 'value' || normalized.type !== 'upload') {
-      normalized[key] = normalizeLexicalUploadValues(child)
+      normalized[key] = normalizeLexicalMediaValues(child)
     }
   }
 
@@ -254,11 +305,11 @@ export const Posts: CollectionConfig = {
   hooks: {
     afterRead: [
       ({ doc }) => {
-        if (doc.body) doc.body = normalizeLexicalUploadValues(doc.body)
+        if (doc.body) doc.body = normalizeLexicalMediaValues(doc.body)
         if (Array.isArray(doc.messages)) {
           doc.messages = normalizeMessages(doc.messages).map((message: Record<string, unknown>) => ({
               ...message,
-              content: normalizeLexicalUploadValues(message.content),
+              content: normalizeLexicalMediaValues(message.content),
             }))
         }
         return doc
@@ -273,7 +324,6 @@ export const Posts: CollectionConfig = {
         data.readingTime = calculateReadingTime({
           body: data.body ?? originalDoc?.body,
           messages: data.messages ?? originalDoc?.messages,
-          widgets: data.widgets ?? originalDoc?.widgets,
         })
         return data
       },
@@ -385,12 +435,7 @@ export const Posts: CollectionConfig = {
         description: 'Le corps éditorial de l’article classique.',
       },
     },
-    lexicalHTMLField({
-      converters: codeBlockConverters,
-      lexicalFieldName: 'body',
-      htmlFieldName: 'bodyHTML',
-    }),
-    contentWidgets('widgets', 'Modules de l’article', (_, siblingData) => siblingData.type === 'article'),
+    articleHTMLField,
     {
       name: 'messages',
       label: 'Messages de la session',

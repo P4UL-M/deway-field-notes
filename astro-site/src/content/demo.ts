@@ -63,7 +63,6 @@ export const demoPosts: Post[] = [
         widgets: [],
       },
     ],
-    widgets: [],
   },
   {
     id: 2,
@@ -75,7 +74,6 @@ export const demoPosts: Post[] = [
     published_at: '2026-07-10T08:30:00.000Z',
     reading_time: 6,
     messages: [],
-    widgets: [],
     body: `
       <p class="lead">Un serveur personnel n’est jamais totalement gratuit : il demande du temps, quelques sauvegardes et l’envie de comprendre ce qui se passe quand une page ne répond plus.</p>
       <p>Pourtant, mon serveur continue d’héberger les services que j’utilise chaque semaine. Pas par goût de la complexité, mais parce que cette petite machine me donne exactement le niveau de contrôle dont j’ai besoin.</p>

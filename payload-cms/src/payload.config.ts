@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { MemoryDiagram } from './blocks/MemoryDiagram'
-import { InlineCallout, InlineMetrics, InlineResource, InlineSteps } from './blocks/InlineWidgets'
+import { InlineCallout, InlineMedia, InlineMetrics, InlineResource, InlineSteps } from './blocks/InlineWidgets'
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { Posts } from './collections/Posts'
@@ -54,6 +54,7 @@ export default buildConfig({
         blocks: [
           CodeBlock({ defaultLanguage: 'shell' }),
           MemoryDiagram,
+          InlineMedia,
           InlineMetrics,
           InlineCallout,
           InlineSteps,

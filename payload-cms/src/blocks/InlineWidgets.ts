@@ -1,5 +1,24 @@
 import type { Block } from 'payload'
 
+export const InlineMedia: Block = {
+  slug: 'InlineMedia',
+  labels: { singular: 'Média intégré', plural: 'Médias intégrés' },
+  fields: [
+    { name: 'media', label: 'Fichier', type: 'upload', relationTo: 'media', required: true },
+    { name: 'caption', label: 'Légende', type: 'textarea' },
+    {
+      name: 'mediaLayout',
+      label: 'Largeur',
+      type: 'select',
+      defaultValue: 'inline',
+      options: [
+        { label: 'Dans la colonne', value: 'inline' },
+        { label: 'Large', value: 'wide' },
+      ],
+    },
+  ],
+}
+
 export const InlineMetrics: Block = {
   slug: 'InlineMetrics',
   labels: {

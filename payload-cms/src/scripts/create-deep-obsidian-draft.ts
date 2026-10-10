@@ -231,6 +231,21 @@ const body = {
         ),
       ),
       paragraph(link('View Deep Obsidian MCP on GitHub', 'https://github.com/P4UL-M/deep-obsidian-mcp')),
+      {
+        type: 'block',
+        version: 2,
+        format: '',
+        fields: {
+          id: randomBytes(12).toString('hex'),
+          blockType: 'InlineResource',
+          blockName: '',
+          eyebrow: 'Source code',
+          title: 'Deep Obsidian MCP',
+          text: 'A Rust-based, local-first memory layer for Obsidian and coding agents.',
+          url: 'https://github.com/P4UL-M/deep-obsidian-mcp',
+          linkLabel: 'open the repository',
+        },
+      },
     ],
     direction: 'ltr' as const,
     format: '' as const,
@@ -257,16 +272,6 @@ const data = {
     'Deep Obsidian MCP turns a local vault into structured project memory that agents can retrieve, extend, and maintain across sessions.',
   publishedAt: '2026-07-16T08:00:00.000Z',
   body,
-  widgets: [
-    {
-      widgetType: 'resource' as const,
-      eyebrow: 'Source code',
-      title: 'Deep Obsidian MCP',
-      text: 'A Rust-based, local-first memory layer for Obsidian and coding agents.',
-      url: 'https://github.com/P4UL-M/deep-obsidian-mcp',
-      linkLabel: 'open the repository',
-    },
-  ],
 }
 
 const post = existingPost.totalDocs

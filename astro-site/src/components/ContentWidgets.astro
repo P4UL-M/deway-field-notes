@@ -3,10 +3,9 @@ import type { ContentWidget } from '../lib/types';
 
 interface Props {
   widgets?: ContentWidget[];
-  context?: 'article' | 'session';
 }
 
-const { widgets = [], context = 'article' } = Astro.props;
+const { widgets = [] } = Astro.props;
 const toneLabels = {
   note: 'field note',
   decision: 'decision recorded',
@@ -16,7 +15,7 @@ const toneLabels = {
 ---
 
 {widgets.length > 0 && (
-  <div class:list={['content-widgets', `content-widgets--${context}`]}>
+  <div class="content-widgets">
     {widgets.map((widget, index) => (
       <Fragment>
         {widget.type === 'media' && widget.media && (

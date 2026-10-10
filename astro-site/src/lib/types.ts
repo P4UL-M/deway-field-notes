@@ -48,6 +48,5 @@ export interface Post {
   published_at: string;
   reading_time: number;
   body: string | null;
-  widgets: ContentWidget[];
   messages: SessionMessage[];
 }

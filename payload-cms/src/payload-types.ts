@@ -167,38 +167,6 @@ export interface Post {
   } | null;
   bodyHTML?: string | null;
   /**
-   * Blocs visuels réordonnables : média, note, chiffres, étapes ou ressource.
-   */
-  widgets?:
-    | {
-        widgetType: 'media' | 'callout' | 'metrics' | 'steps' | 'resource';
-        media?: (number | null) | Media;
-        caption?: string | null;
-        mediaLayout?: ('inline' | 'wide') | null;
-        tone?: ('note' | 'decision' | 'warning' | 'success') | null;
-        eyebrow?: string | null;
-        title?: string | null;
-        text?: string | null;
-        metrics?:
-          | {
-              value: string;
-              label: string;
-              id?: string | null;
-            }[]
-          | null;
-        steps?:
-          | {
-              title: string;
-              text?: string | null;
-              id?: string | null;
-            }[]
-          | null;
-        url?: string | null;
-        linkLabel?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  /**
    * Ajoute, déplace et replie les tours de la conversation.
    */
   messages?:
@@ -402,35 +370,6 @@ export interface PostsSelect<T extends boolean = true> {
   readingTime?: T;
   body?: T;
   bodyHTML?: T;
-  widgets?:
-    | T
-    | {
-        widgetType?: T;
-        media?: T;
-        caption?: T;
-        mediaLayout?: T;
-        tone?: T;
-        eyebrow?: T;
-        title?: T;
-        text?: T;
-        metrics?:
-          | T
-          | {
-              value?: T;
-              label?: T;
-              id?: T;
-            };
-        steps?:
-          | T
-          | {
-              title?: T;
-              text?: T;
-              id?: T;
-            };
-        url?: T;
-        linkLabel?: T;
-        id?: T;
-      };
   messages?:
     | T
     | {

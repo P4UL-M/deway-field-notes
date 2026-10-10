@@ -1,7 +1,6 @@
 ---
 import PostLayout from '../../layouts/PostLayout.astro';
 import SessionTranscript from '../../components/SessionTranscript.astro';
-import ContentWidgets from '../../components/ContentWidgets.astro';
 import { getPublishedPosts } from '../../lib/payload';
 
 export const prerender = false;
@@ -22,9 +21,6 @@ const nextPost = posts[postIndex - 1];
   {post.type === 'session' ? (
     <SessionTranscript messages={post.messages} />
   ) : (
-    <>
-      <div class="prose" set:html={post.body || ''} />
-      <ContentWidgets widgets={post.widgets} context="article" />
-    </>
+    <div class="prose" set:html={post.body || ''} />
   )}
 </PostLayout>

@@ -1,7 +1,6 @@
 ---
 import PostLayout from '../../layouts/PostLayout.astro';
 import SessionTranscript from '../../components/SessionTranscript.astro';
-import ContentWidgets from '../../components/ContentWidgets.astro';
 import { getPreviewPost } from '../../lib/payload';
 
 export const prerender = false;
@@ -20,10 +19,7 @@ if (!post) {
   {post.type === 'session' ? (
     <SessionTranscript messages={post.messages} />
   ) : (
-    <>
-      <div class="prose" set:html={post.body || ''} />
-      <ContentWidgets widgets={post.widgets} context="article" />
-    </>
+    <div class="prose" set:html={post.body || ''} />
   )}
 </PostLayout>
 

@@ -57,7 +57,6 @@ interface PayloadPost {
   publishedAt?: string;
   readingTime?: number;
   bodyHTML?: string;
-  widgets?: PayloadWidget[];
   messages?: PayloadMessage[];
 }
 
@@ -114,10 +113,9 @@ function widgetText(widgets: ContentWidget[]): string {
   ]).filter(Boolean).join(' ');
 }
 
-function calculateReadingTime(body: string | null, messages: SessionMessage[], widgets: ContentWidget[]): number {
+function calculateReadingTime(body: string | null, messages: SessionMessage[]): number {
   const prose = [
     stripHTML(body || ''),
-    widgetText(widgets),
     ...messages.map((message) => `${stripHTML(message.content)} ${widgetText(message.widgets)}`),
   ].join(' ');
   const words = prose.trim().split(/\s+/u).filter(Boolean).length;
@@ -131,7 +129,6 @@ function calculateReadingTime(body: string | null, messages: SessionMessage[], w
 
 function normalizePost(post: PayloadPost): Post {
   const body = post.bodyHTML || null;
-  const widgets = normalizeWidgets(post.widgets);
   const messages = (post.messages || []).map(
     (message, index): SessionMessage => {
       const role: MessageRole = message.role === 'user' ? 'user' : 'assistant';
@@ -164,9 +161,8 @@ function normalizePost(post: PayloadPost): Post {
     slug: post.slug || String(post.id),
     summary: post.summary || '',
     published_at: post.publishedAt || new Date().toISOString(),
-    reading_time: calculateReadingTime(body, messages, widgets),
+    reading_time: calculateReadingTime(body, messages),
     body,
-    widgets,
     messages,
   };
 }

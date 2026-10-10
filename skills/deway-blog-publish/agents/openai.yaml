@@ -1,0 +1,3 @@
+interface:
+  display_name: "Deway · publier un billet"
+  short_description: "Articles et sessions avec widgets, via API ou SSH"
