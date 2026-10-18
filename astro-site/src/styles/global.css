@@ -172,12 +172,13 @@ h1 { max-width: 780px; margin: 0; font-family: var(--serif); font-size: clamp(40
   margin: 1.7em 0;
   padding: 22px;
   overflow-x: auto;
-  border: 1px solid var(--line);
-  border-radius: 6px;
 }
-/* The neutral diagram palette stays readable in either site theme. */
-.content-diagram { background: #fff; color: #1f1e1b; }
-.content-diagram svg { display: block; margin-inline: auto; max-width: 100%; height: auto; }
+.content-diagram { padding: 12px 0; color: var(--ink); }
+.content-diagram svg { display: block; margin-inline: auto; max-width: 100%; height: auto; background: transparent !important; }
+.content-diagram svg .node :is(rect, polygon, circle, ellipse, path) { fill: var(--paper-raised) !important; stroke: var(--line) !important; filter: none !important; }
+.content-diagram svg :is(text, .nodeLabel, .edgeLabel) { fill: var(--ink) !important; color: var(--ink) !important; }
+.content-diagram svg .flowchart-link { stroke: var(--accent) !important; }
+.content-diagram svg marker path { fill: var(--accent) !important; stroke: var(--accent) !important; }
 .content-equation { color: var(--ink); }
 .content-equation .katex-display { margin: 0; }
 .content-render-error { color: var(--muted); font: 13px/1.5 var(--sans); }
@@ -757,6 +758,14 @@ h1 { max-width: 780px; margin: 0; font-family: var(--serif); font-size: clamp(40
 .session-message__body > :first-child { margin-top: 0; }
 .session-message__body > :last-child { margin-bottom: 0; }
 .session-message__body p { margin: 0 0 18px; }
+.session-message__body blockquote {
+  margin: 0 0 24px;
+  padding: 2px 0 2px 18px;
+  border-inline-start: 2px solid var(--muted);
+  color: var(--muted);
+  font: 400 16px/1.65 var(--sans);
+}
+.session-message__body blockquote > :last-child { margin-bottom: 0; }
 .session-message__body ul { margin: 20px 0; padding-left: 20px; }
 .session-message__body li { margin: 8px 0; }
 .session-message__body :not(pre) > code {

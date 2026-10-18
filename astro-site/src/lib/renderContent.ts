@@ -8,7 +8,17 @@ export async function renderContent() {
   // Load each renderer only on pages that use it. All assets are served locally.
   const mermaidLoader = [...blocks].some((code) => code.classList.contains('language-mermaid'))
     ? import('mermaid').then(({ default: mermaid }) => {
-      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'neutral' });
+      const styles = getComputedStyle(document.documentElement);
+      const color = (name: string) => styles.getPropertyValue(name).trim();
+      mermaid.initialize({
+        startOnLoad: false, securityLevel: 'strict', theme: 'base', htmlLabels: false,
+        flowchart: { nodeSpacing: 18, rankSpacing: 22, padding: 10 },
+        themeVariables: {
+          fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif', fontSize: '14px',
+          primaryColor: color('--paper-raised'), primaryTextColor: color('--ink'),
+          primaryBorderColor: color('--line'), lineColor: color('--accent'),
+        },
+      });
       return mermaid;
     }) : undefined;
   const mathLoader = [...blocks].some((code) => !code.classList.contains('language-mermaid'))
@@ -35,10 +45,32 @@ export async function renderContent() {
         output.style.visibility = 'hidden';
         output.style.position = 'absolute';
         pre.before(output);
-        const { svg } = await mermaid.render(`content-mermaid-${index}`, source, output);
-        output.innerHTML = svg;
+        // Authors can opt a flowchart into a compact row with a mobile column.
+        const responsive = /^%% responsive-flowchart\s*$/m.test(source);
+        const container = pre.parentElement!;
+        let direction = '';
+        let revision = 0;
+        let pending: Promise<void> = Promise.resolve();
+        const draw = async () => {
+          if (!output.isConnected) return;
+          const next = responsive && container.clientWidth < 520 ? 'TB' : 'LR';
+          if (direction === next) return;
+          const input = responsive ? source.replace(/^flowchart\s+(?:LR|TB|TD)\b/m, `flowchart ${next}`) : source;
+          const { svg } = await mermaid.render(`content-mermaid-${index}-${revision++}`, input, output);
+          output.innerHTML = svg;
+          output.dataset.direction = next;
+          direction = next;
+        };
+        await draw();
         output.style.removeProperty('visibility');
         output.style.removeProperty('position');
+        if (responsive) {
+          const observer = new ResizeObserver(() => {
+            if (!output.isConnected) { observer.disconnect(); return; }
+            pending = pending.then(draw).catch(() => { /* Keep the readable existing diagram. */ });
+          });
+          observer.observe(container);
+        }
       } else {
         if (!katex) throw new Error('KaTeX unavailable');
         katex.render(source, output, { displayMode: true, throwOnError: true, trust: false });
