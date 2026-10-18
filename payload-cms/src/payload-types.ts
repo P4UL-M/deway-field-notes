@@ -221,6 +221,9 @@ export interface Post {
                     id?: string | null;
                   }[]
                 | null;
+              /**
+               * Lien externe ou URL d’un PDF déposé dans Médias. Les PDF sont proposés au téléchargement.
+               */
               url?: string | null;
               linkLabel?: string | null;
               id?: string | null;
@@ -234,6 +237,8 @@ export interface Post {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * Images, vidéos et PDF. Pour proposer un PDF au téléchargement, copiez son URL dans un bloc Ressource.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */

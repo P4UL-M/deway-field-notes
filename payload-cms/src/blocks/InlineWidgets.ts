@@ -97,7 +97,9 @@ export const InlineResource: Block = {
     { name: 'eyebrow', label: 'Sur-titre', type: 'text' },
     { name: 'title', label: 'Titre', type: 'text' },
     { name: 'text', label: 'Texte', type: 'textarea' },
-    { name: 'url', label: 'URL', type: 'text', required: true },
+    { name: 'url', label: 'URL', type: 'text', required: true, admin: {
+      description: 'Lien externe ou URL d’un PDF déposé dans Médias. Les PDF sont proposés au téléchargement.',
+    } },
     { name: 'linkLabel', label: 'Texte du lien', type: 'text', defaultValue: 'ouvrir la ressource' },
   ],
 }

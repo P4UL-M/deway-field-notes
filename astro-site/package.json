@@ -12,10 +12,13 @@
     "@astrojs/node": "latest",
     "@payloadcms/live-preview": "^3.86.0",
     "@resvg/resvg-js": "^2.6.2",
-    "astro": "latest"
+    "astro": "latest",
+    "katex": "0.19.0",
+    "mermaid": "12.2.0"
   },
   "devDependencies": {
     "@astrojs/check": "latest",
+    "@types/katex": "0.16.8",
     "typescript": "latest"
   }
 }

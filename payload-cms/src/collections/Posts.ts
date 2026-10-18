@@ -128,12 +128,14 @@ const inlineStepsHTML = (fields: { title?: string; steps?: InlineStep[] } = {}) 
 
 const inlineResourceHTML = (fields: { eyebrow?: string; title?: string; text?: string; url?: string; linkLabel?: string } = {}) => {
   const url = escapeHTML(fields.url || '')
+  const isPDF = /\.pdf(?:[?#]|$)/i.test(fields.url || '')
+  const linkAttributes = isPDF ? 'download' : 'target="_blank" rel="noreferrer"'
   const eyebrow = escapeHTML(fields.eyebrow || 'external resource')
   const title = escapeHTML(fields.title || fields.url || '')
   const text = fields.text ? `<p>${escapeHTML(fields.text)}</p>` : ''
-  const linkLabel = escapeHTML(fields.linkLabel || 'ouvrir la ressource')
+  const linkLabel = escapeHTML(fields.linkLabel || (isPDF ? 'télécharger le PDF' : 'ouvrir la ressource'))
 
-  return `<a class="content-widget inline-widget resource-widget" href="${url}" target="_blank" rel="noreferrer" data-reveal><div><span>${eyebrow}</span><strong>${title}</strong>${text}</div><b>${linkLabel} ↗</b></a>`
+  return `<a class="content-widget inline-widget resource-widget" href="${url}" ${linkAttributes} data-reveal><div><span>${eyebrow}</span><strong>${title}</strong>${text}</div><b>${linkLabel} ${isPDF ? '↓' : '↗'}</b></a>`
 }
 
 const inlineMediaConverter: HTMLConverterAsync<{
@@ -500,6 +502,7 @@ export const Posts: CollectionConfig = {
           },
         },
         lexicalHTMLField({
+          converters: codeBlockConverters,
           lexicalFieldName: 'content',
           htmlFieldName: 'contentHTML',
         }),

@@ -129,6 +129,7 @@ export const contentWidgets = (
       label: 'URL',
       type: 'text',
       admin: {
+        description: 'Lien externe ou URL d’un PDF déposé dans Médias. Les PDF sont proposés au téléchargement.',
         condition: (_, siblingData) => siblingData.widgetType === 'resource',
       },
     },

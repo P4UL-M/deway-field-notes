@@ -9,6 +9,7 @@ export const Media: CollectionConfig = {
   admin: {
     group: 'Contenu',
     useAsTitle: 'alt',
+    description: 'Images, vidéos et PDF. Pour proposer un PDF au téléchargement, copiez son URL dans un bloc Ressource.',
   },
   access: {
     read: () => true,
@@ -16,13 +17,13 @@ export const Media: CollectionConfig = {
   fields: [
     {
       name: 'alt',
-      label: 'Texte alternatif',
+      label: 'Texte alternatif ou titre du document',
       type: 'text',
       required: true,
     },
   ],
   upload: {
     staticDir: process.env.MEDIA_DIR || 'media',
-    mimeTypes: ['image/*', 'video/*'],
+    mimeTypes: ['image/*', 'video/*', 'application/pdf'],
   },
 }

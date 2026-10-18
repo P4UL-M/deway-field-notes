@@ -67,6 +67,17 @@ Dans **Publications**, créer ou ouvrir un contenu :
 
 Les articles regroupent tout leur contenu dans l’éditeur riche. Les modules séparés restent disponibles dans chaque message de session.
 
+### Diagrammes, équations et PDF
+
+Dans l’éditeur riche d’un article ou d’un message de session, insérer le bloc **Code** existant, puis choisir :
+
+- **Mermaid** pour un diagramme, par exemple `flowchart LR` suivi de `A[Écriture] --> B[Publication]` sur la ligne suivante ;
+- **Équation (LaTeX)** pour une formule, par exemple `E = mc^2` ou `\frac{a}{b}`. Saisir la formule sans délimiteurs `$`.
+
+Le blog et la Live Preview affichent le diagramme ou l’équation. Les moteurs de rendu sont chargés uniquement sur les pages concernées, depuis les fichiers du site. Si le contenu est invalide ou JavaScript indisponible, le code source reste lisible.
+
+Pour un PDF, déposer le fichier dans **Médias**, copier son URL, puis la coller dans le champ **URL** du bloc **Ressource** existant (dans l’article ou les modules d’un message). Choisir par exemple « Télécharger le PDF » comme texte du lien. Une URL de PDF hébergé sur le blog déclenche le téléchargement ; pour un PDF externe, le comportement dépend du navigateur et du serveur distant.
+
 Payload enregistre automatiquement les brouillons et permet de comparer ou restaurer les versions. Le site public ne reçoit que les publications ayant le statut `published`.
 
 ## Publication depuis une session d'agent

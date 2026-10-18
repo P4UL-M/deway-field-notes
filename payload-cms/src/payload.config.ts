@@ -16,6 +16,16 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 const databaseURL = process.env.DATABASE_URL || ''
 
+// Extend Payload's own language list so existing code blocks keep their choices.
+const defaultCodeBlock = CodeBlock({ defaultLanguage: 'shell' })
+const languageField = defaultCodeBlock.fields.find((field) => 'name' in field && field.name === 'language')
+const codeLanguages = languageField?.type === 'select'
+  ? Object.fromEntries(languageField.options.flatMap((option) => {
+    if (typeof option === 'string') return [[option, option]]
+    return typeof option.label === 'string' ? [[option.value, option.label]] : []
+  }))
+  : {}
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -52,7 +62,10 @@ export default buildConfig({
       UploadFeature({ maxDepth: 0 }),
       BlocksFeature({
         blocks: [
-          CodeBlock({ defaultLanguage: 'shell' }),
+          CodeBlock({
+            defaultLanguage: 'shell',
+            languages: { ...codeLanguages, mermaid: 'Mermaid', latex: 'Équation (LaTeX)' },
+          }),
           MemoryDiagram,
           InlineMedia,
           InlineMetrics,

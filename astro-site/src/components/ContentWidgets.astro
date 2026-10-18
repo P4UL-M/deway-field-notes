@@ -74,13 +74,16 @@ const toneLabels = {
         )}
 
         {widget.type === 'resource' && widget.url && (
-          <a class="content-widget resource-widget" href={widget.url} target="_blank" rel="noreferrer" data-reveal>
+          <a class="content-widget resource-widget" href={widget.url}
+            download={/\.pdf(?:[?#]|$)/i.test(widget.url) || undefined}
+            target={/\.pdf(?:[?#]|$)/i.test(widget.url) ? undefined : '_blank'}
+            rel="noreferrer" data-reveal>
             <div>
               <span>{widget.eyebrow || 'external resource'}</span>
               <strong>{widget.title || widget.url}</strong>
               {widget.text && <p>{widget.text}</p>}
             </div>
-            <b>{widget.link_label || 'ouvrir la ressource'} ↗</b>
+            <b>{widget.link_label || 'ouvrir la ressource'} {/\.pdf(?:[?#]|$)/i.test(widget.url) ? '↓' : '↗'}</b>
           </a>
         )}
       </Fragment>
