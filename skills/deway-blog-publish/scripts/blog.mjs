@@ -7,10 +7,27 @@ import { pathToFileURL } from 'node:url';
 
 class BlogError extends Error {}
 const fail = (message) => { throw new BlogError(message); };
-const mediaTypes = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp', '.avif': 'image/avif', '.svg': 'image/svg+xml', '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime' };
+const mediaTypes = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp', '.avif': 'image/avif', '.svg': 'image/svg+xml', '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime', '.pdf': 'application/pdf' };
 const nonempty = (v) => typeof v === 'string' && v.trim().length > 0;
 const validID = (v) => (typeof v === 'number' && v > 0) || (typeof v === 'string' && v.length > 0);
 const httpURL = (v) => { try { return ['https:', 'http:'].includes(new URL(v).protocol); } catch { return false; } };
+const resourceURL = (v) => {
+  if (httpURL(v)) return true;
+  try { return typeof v === 'string' && v.startsWith('/') && new URL(v, 'https://blog.deway.fr').origin === 'https://blog.deway.fr'; } catch { return false; }
+};
+function at(path, action) {
+  try { return action(); } catch (error) {
+    if (error instanceof BlogError) error.message = `${path} : ${error.message}`;
+    throw error;
+  }
+}
+// Report field paths, never server messages or submitted values (which may be private).
+function validationPaths(error) {
+  const errors = error?.data?.errors;
+  const paths = (Array.isArray(errors) ? errors : []).map(item => item?.path)
+    .filter(path => typeof path === 'string' && /^[a-zA-Z0-9_.[\]-]{1,180}$/.test(path));
+  return [...new Set(paths)].join(', ');
+}
 
 function widget(value, inline = false) {
   const type = inline ? value.blockType : value.widgetType;
@@ -23,20 +40,20 @@ function widget(value, inline = false) {
       (!Array.isArray(value.metrics) || value.metrics.length < 1 || value.metrics.length > 4 || value.metrics.some(m => !nonempty(m.value) || !nonempty(m.label)))) fail('Chiffres : 1 à 4 paires value/label non vides.');
   if (['steps', 'InlineSteps'].includes(type) &&
       (!Array.isArray(value.steps) || !value.steps.length || value.steps.some(s => !nonempty(s.title)))) fail('Étapes : au moins une étape titrée.');
-  if (['resource', 'InlineResource'].includes(type) && !httpURL(value.url)) fail('Ressource : URL HTTP(S) requise.');
+  if (['resource', 'InlineResource'].includes(type) && !resourceURL(value.url)) fail('Ressource : URL HTTP(S) ou chemin du blog commençant par / requis.');
   if (['media', 'InlineMedia'].includes(type) && (!validID(value.media) || (value.mediaLayout && !['inline', 'wide'].includes(value.mediaLayout)))) fail('Média : ID scalaire et largeur inline/wide requis.');
   if (type === 'Code' && !nonempty(value.code)) fail('Bloc Code vide.');
   if (type === 'MemoryDiagram' && !['retrieval', 'system', 'shared'].includes(value.variant)) fail('Variante MemoryDiagram inconnue.');
 }
 
-function lexical(value, session = false) {
+function lexical(value) {
   if (value?.root?.type !== 'root' || !Array.isArray(value.root.children) || !value.root.children.length) fail('Contenu Lexical root.children non vide requis.');
   function visit(node) {
     if (!node || typeof node.type !== 'string' || !Number.isInteger(node.version)) fail('Nœud Lexical sans type/version.');
     if (node.type === 'text' && typeof node.text !== 'string') fail('Nœud text sans texte.');
+    if (node.type === 'code') fail('Utiliser le bloc Payload Code : type block, version 2, fields.blockType Code et fields.code.');
     if (node.type === 'heading' && !['h2', 'h3', 'h4', 'h5', 'h6'].includes(node.tag)) fail('Titre Lexical : utiliser h2/h3, jamais un deuxième h1.');
     if (node.type === 'block') {
-      if (session) fail('Utiliser code/widgets du message : les convertisseurs personnalisés ne sont pas configurés sur contentHTML.');
       if (node.version !== 2 || !nonempty(node.fields?.id)) fail('Bloc Lexical : version 2 et fields.id requis.');
       widget(node.fields, true);
     }
@@ -62,20 +79,24 @@ export function validate(data) {
   const widgets = (items) => {
     if (items === undefined) return;
     if (!Array.isArray(items)) fail('widgets doit être un tableau.');
-    items.forEach(item => widget(item));
+    items.forEach((item, index) => at(`widgets[${index}]`, () => widget(item)));
   };
   if (data.type === 'article') lexical(data.body);
   else {
     if (!Array.isArray(data.messages) || !data.messages.length) fail('Session sans messages.');
-    for (const m of data.messages) {
+    for (const [index, m] of data.messages.entries()) at(`messages[${index}]`, () => {
       if (!['user', 'assistant'].includes(m.role) || !['message', 'tool', 'note'].includes(m.kind)) fail('Rôle/kind de message inconnu.');
       if (m.role === 'user' && m.kind !== 'message') fail('Paul utilise kind message.');
       if (m.contentHTML !== undefined) fail('contentHTML est calculé, écrire content.');
       widgets(m.widgets);
       if (m.kind === 'tool') {
         if (!nonempty(m.code) && !m.widgets?.length) fail('Tool call sans code/widget visible.');
-      } else lexical(m.content, true);
-    }
+      } else {
+        if (nonempty(m.code)) fail('Le champ code est affiché après tout le message et masqué dans son éditeur. Insérer code(...) dans rich(...), entre les paragraphes voulus ; réserver messages[].code aux tool calls.');
+        if (m.content?.root?.children?.length) lexical(m.content);
+        else if (!m.widgets?.length) fail('Message sans contenu ni widget visible.');
+      }
+    });
   }
   return data;
 }
@@ -94,8 +115,15 @@ async function restClient() {
       method, headers, redirect: 'error', signal: AbortSignal.timeout(30000),
       body: body === undefined ? undefined : multipart ? body : JSON.stringify(body),
     });
-    // Do not echo server bodies: authentication responses may contain secrets.
-    if (!response.ok) fail(`API HTTP ${response.status} (${method} ${path.split('?')[0]}). Aucun nouvel essai automatique.`);
+    // Never echo authentication responses. For content validation, expose paths only.
+    if (!response.ok) {
+      let paths = '';
+      if ([400, 422].includes(response.status) && /^\/api\/(posts|media)(\/|\?|$)/.test(path)) {
+        const errors = (await response.json().catch(() => ({}))).errors;
+        if (Array.isArray(errors)) paths = errors.map(validationPaths).filter(Boolean).join(', ');
+      }
+      fail(`API HTTP ${response.status} (${method} ${path.split('?')[0]})${paths ? ` ; champs : ${paths}` : ''}. Aucun nouvel essai automatique.`);
+    }
     return response.json();
   }
   if (!token) {
@@ -115,7 +143,7 @@ async function restClient() {
       const form = new FormData();
       form.set('_payload', JSON.stringify({ alt }));
       const type = mediaTypes[extname(file).toLowerCase()];
-      if (!type) fail('Extension média non prise en charge par le helper. Utiliser une image/vidéo courante.');
+      if (!type) fail('Extension média non prise en charge par le helper. Utiliser une image, une vidéo courante ou un PDF.');
       form.set('file', new Blob([await readFile(file)], { type }), basename(file));
       return doc(await request('POST', '/api/media', form));
     },
@@ -133,6 +161,9 @@ async function localClient() {
   const config = await module.default;
   config.typescript = { ...config.typescript, autoGenerate: false };
   config.admin = { ...config.admin, importMap: { ...config.admin?.importMap, autoGenerate: false } };
+  // A redirected get/find response must remain valid JSON, without runtime logs.
+  // Surface only our sanitized field paths on stderr, never raw connection errors.
+  config.logger = { options: { level: 'silent' }, destination: process.stderr };
   // The blog source hardcodes push:true. Replace its adapter before initialization.
   // Loading matched production source preserves collections and rendering hooks.
   config.db = postgresAdapter({ push: false, pool: { connectionString: process.env.DATABASE_URL } });
@@ -187,9 +218,14 @@ export async function main(args = process.argv.slice(2)) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  main().then(result => console.log(JSON.stringify(result, null, 2))).catch(error => {
-    // Only our deliberate errors are detailed; library errors may contain env values.
-    console.error(error instanceof BlogError ? error.message : 'Échec fichier/transport/CMS. Relire le slug ou l’ID avant toute nouvelle écriture.');
-    process.exitCode = 1;
+  main().then(result => {
+    // Payload's local runtime can leave background handles open after destroy().
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`, () => process.exit(0));
+  }).catch(error => {
+    const paths = validationPaths(error);
+    const message = error instanceof BlogError ? error.message : paths
+      ? `Validation CMS ; champs : ${paths}. Relire avant toute nouvelle écriture.`
+      : 'Échec fichier/transport/CMS. Relire le slug ou l’ID avant toute nouvelle écriture.';
+    process.stderr.write(`${message}\n`, () => process.exit(1));
   });
 }

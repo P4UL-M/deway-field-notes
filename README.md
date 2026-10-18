@@ -84,10 +84,20 @@ Payload enregistre automatiquement les brouillons et permet de comparer ou resta
 
 Le skill [`deway-blog-publish`](skills/deway-blog-publish/SKILL.md) explique comment
 rédiger un article ou une session, placer les widgets et publier via API ou SSH.
-Il comprend des modèles Lexical et un helper Node.js 22 autonome. Copier son dossier
-dans `~/.codex/skills/` pour le rendre disponible aux autres sessions Codex, puis
-l'invoquer avec `$deway-blog-publish`. Les accès au blog restent fournis séparément ;
-aucun secret n'est inclus dans le skill.
+Il comprend des modèles Lexical et un helper Node.js 22 autonome. Pour une installation
+locale qui suit les changements de ce dépôt, créer un lien vers le **dossier complet**
+du skill dans le répertoire de skills utilisé par Codex (ici `~/.codex/skills/`) :
+
+```sh
+# Depuis un checkout conservé à un emplacement stable ; ne pas écraser une installation existante.
+ln -s "$(pwd)/skills/deway-blog-publish" ~/.codex/skills/deway-blog-publish
+```
+
+Le lien suit les modifications locales et celles récupérées par `git pull`, sans
+réinstallation. Il ne télécharge pas de mises à jour à lui seul. Invoquer ensuite
+`$deway-blog-publish` ; si Codex ne détecte pas le skill, redémarrer Codex. Une copie
+autonome du dossier reste possible, mais devra être resynchronisée à chaque mise à jour.
+Les accès au blog restent fournis séparément ; aucun secret n’est inclus dans le skill.
 
 Vérification hors réseau des scripts :
 

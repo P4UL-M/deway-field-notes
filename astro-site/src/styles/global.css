@@ -159,7 +159,9 @@ h1 { max-width: 780px; margin: 0; font-family: var(--serif); font-size: clamp(40
 .prose blockquote { margin-left: 0; padding: .1em 0 .1em 1.2em; border-left: 3px solid var(--accent); color: var(--muted); }
 .prose code { font-family: var(--mono); font-size: .82em; }
 .prose :not(pre) > code { padding: .15em .35em; background: var(--accent-soft); border-radius: 3px; }
-.prose pre { position: relative; overflow-x: auto; margin: 1.7em 0; padding: 22px; background: var(--terminal); color: var(--terminal-ink); border-radius: 6px; font: 13px/1.65 var(--mono); }
+.prose pre,
+.session-message__body pre { position: relative; overflow-x: auto; margin: 1.7em 0; padding: 22px; background: var(--terminal); color: var(--terminal-ink); border-radius: 6px; font: 13px/1.65 var(--mono); }
+.session-message__body pre > code { font: inherit; }
 .copy-code { position: absolute; top: 8px; right: 8px; border: 1px solid #4a4842; padding: 4px 8px; background: transparent; color: var(--terminal-muted); border-radius: 3px; cursor: pointer; font: 10px var(--mono); }
 .copy-code:hover { color: var(--terminal-ink); }
 

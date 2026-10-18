@@ -45,15 +45,16 @@ Les opérations correspondent à :
 | `publish FILE ID` | GET de contrôle, puis PATCH `/api/posts/{id}?draft=false` avec **le contenu revu** et `_status: published` |
 | `upload FILE ALT` | POST `/api/media` multipart : `file` et `_payload` contenant `{ "alt": "…" }` |
 
-Le helper refuse les archives, les slugs différents pour un même ID, les doublons à la création et les champs calculés au niveau de la publication. La commande `draft` force le brouillon même si le fichier contient `_status: published`. Payload peut conserver la version publique tandis que la dernière version est en brouillon : ne pas confondre le statut de la version lue avec celui du document public. Les erreurs n'affichent pas les réponses d'authentification et n'entraînent aucune répétition automatique.
+Le helper refuse les archives, les slugs différents pour un même ID, les doublons à la création et les champs calculés au niveau de la publication. La commande `draft` force le brouillon même si le fichier contient `_status: published`. Payload peut conserver la version publique tandis que la dernière version est en brouillon : ne pas confondre le statut de la version lue avec celui du document public. Les erreurs n’affichent pas les réponses d’authentification et n’entraînent aucune répétition automatique. Une validation HTTP 400/422 du contenu peut exposer les chemins des champs invalides, sans recopier les valeurs envoyées ou les messages du serveur. En transport local, le CLI termine après la fermeture du runtime et la vidange de sa sortie ; ne pas lancer de nouvelles mutations pour compenser une attente de processus.
 
 ## Médias
 
 ```sh
 node "$skill_dir/scripts/blog.mjs" upload /tmp/capture.png 'Vue du tableau de résultats'
+node "$skill_dir/scripts/blog.mjs" upload /tmp/cours.pdf 'Cours de mathématiques'
 ```
 
-Reprendre l’ID retourné, avec `upload(ID, alt)` pour une image simple ou `inline("InlineMedia", {media: ID, mediaLayout: "wide", caption: "…"})` pour une image/vidéo dans le corps de l’article. Dans une session, utiliser `{"widgetType":"media","media":ID,"mediaLayout":"wide","caption":"…"}` dans `messages[].widgets`. Le helper accepte JPG, PNG, GIF, WebP, AVIF, SVG, MP4, WebM et MOV. Le schéma autorise les images et les vidéos ; pas les PDF. Les médias sont lisibles publiquement dès l'upload, même si le billet est encore un brouillon. Préparer des fichiers déjà expurgés. Avant de répéter un upload dont le résultat est incertain, consulter `/api/media` avec l'auteur authentifié pour retrouver le fichier existant.
+Reprendre l’ID retourné, avec `upload(ID, alt)` pour une image simple ou `inline("InlineMedia", {media: ID, mediaLayout: "wide", caption: "…"})` pour une image/vidéo dans le corps de l’article. Dans une session, le même bloc `InlineMedia` peut être placé dans `messages[].content.root.children`. Utiliser `{"widgetType":"media","media":ID,"mediaLayout":"wide","caption":"…"}` dans `messages[].widgets` seulement si le média doit venir après tout le message. Le helper accepte JPG, PNG, GIF, WebP, AVIF, SVG, MP4, WebM, MOV et PDF (`application/pdf`). Pour un PDF, reprendre l’URL retournée dans un bloc Ressource avec un texte de téléchargement ; ne pas l’insérer via `upload()` ou `InlineMedia`, destinés aux images/vidéos. Les médias sont lisibles publiquement dès l'upload, même si le billet est encore un brouillon. Préparer des fichiers déjà expurgés. Avant de répéter un upload dont le résultat est incertain, consulter `/api/media` avec l'auteur authentifié pour retrouver le fichier existant.
 
 ## SSH
 
@@ -105,6 +106,6 @@ Après publication, requêter l'origine publique **sans JWT, sans cookie et sans
 
 ## Bases documentaires
 
-Schéma et rendu observés dans le dépôt Deway le 10 octobre 2026 : `Posts.ts`, `Users.ts`, `Media.ts`, `contentWidgets.ts`, `InlineWidgets.ts`, `payload.config.ts`, `payload.ts`, `SessionTranscript.astro` et `compose.yaml`. En cas de divergence, le serveur courant fait autorité.
+Schéma et rendu revérifiés dans le dépôt Deway et la preview du brouillon 8 le 18 octobre 2026 : `Posts.ts`, `Users.ts`, `Media.ts`, `contentWidgets.ts`, `InlineWidgets.ts`, `payload.config.ts`, `payload.ts`, `SessionTranscript.astro` et `compose.yaml`. En cas de divergence, le serveur courant fait autorité.
 
 Contrats Payload : [REST](https://payloadcms.com/docs/rest-api/overview), [brouillons et versions](https://payloadcms.com/docs/versions/drafts), [API locale](https://payloadcms.com/docs/local-api/overview). Le multipart `_payload` est confirmé dans le [SDK Payload 3.86](https://github.com/payloadcms/payload/blob/v3.86.0/packages/sdk/src/index.ts).

@@ -46,9 +46,9 @@ const body = rich(
 
 Format du texte : `0` normal, `1` gras, `2` italique, `16` code inline. Une chaîne contenant `**gras**` reste du texte littéral. Écrire des nœuds `link` pour les liens, et le bloc `Code` pour du code multiligne ; ne pas injecter du HTML arbitraire. Une image simple peut être intégrée avec `upload(ID, alt)`. Utiliser `InlineMedia` pour une image ou une vidéo avec contrôles, une légende et le choix de largeur.
 
-## Widgets intégrés dans un article
+## Blocs intégrés dans un article ou un message de session
 
-Ces blocs se placent exactement parmi `body.root.children`, avec `inline(blockType, fields)`. Les champs sont des textes simples, pas du Markdown ou du HTML.
+Ces blocs se placent exactement parmi `body.root.children` (article) ou `messages[].content.root.children` (session), avec `inline(blockType, fields)`. Malgré le nom du helper `inline`, ce sont des nœuds de type `block`, frères des paragraphes, pas des enfants d’un paragraphe. Les champs sont des textes simples, pas du Markdown ou du HTML.
 
 | `blockType` exact | Champs |
 | --- | --- |
@@ -56,11 +56,11 @@ Ces blocs se placent exactement parmi `body.root.children`, avec `inline(blockTy
 | `InlineCallout` | `tone`: `note`, `decision`, `warning` ou `success` ; `eyebrow`, `title`, `text` facultatifs |
 | `InlineMetrics` | `metrics`: 1 à 4 objets `{value, label}`, deux textes obligatoires |
 | `InlineSteps` | `title` facultatif, `steps`: au moins un `{title, text}`, titre obligatoire |
-| `InlineResource` | `url` obligatoire, `eyebrow`, `title`, `text`, `linkLabel` facultatifs |
-| `Code` | `code`, `language` (par exemple `shell`, `typescript`, `json`, `text`) |
+| `InlineResource` | `url` HTTP(S) ou chemin du blog (`/api/media/file/document.pdf`) obligatoire ; `eyebrow`, `title`, `text`, `linkLabel` facultatifs |
+| `Code` | `code`, `language` (par exemple `shell`, `typescript`, `plaintext`, `mermaid`, `latex`) |
 | `MemoryDiagram` | `variant`: `retrieval`, `system` ou `shared` |
 
-`MemoryDiagram` représente uniquement les trois schémas prédéfinis de mémoire Obsidian : accès fichiers/retrieval, MCP + skills + vault, et mémoire projet partagée. Ce n'est pas un moteur Mermaid ni un diagramme personnalisable. Pour un autre schéma, créer une image adaptée avec les outils disponibles, l'uploader et la décrire.
+`MemoryDiagram` représente uniquement les trois schémas prédéfinis de mémoire Obsidian : accès fichiers/retrieval, MCP + skills + vault, et mémoire projet partagée. Ce n'est pas un moteur Mermaid ni un diagramme personnalisable. Pour un schéma personnalisé, utiliser le bloc Code en langue `mermaid` ; une image reste possible si elle convient mieux au contenu.
 
 ```js
 // Après avoir obtenu un véritable ID média :
@@ -78,6 +78,22 @@ inline('InlineResource', { eyebrow: 'Documentation', title: 'Payload',
 ```
 
 Les exemples de chiffres ci-dessus décrivent des contraintes vérifiables du blog. Pour un article réel, ne conserver que les métriques utiles à son sujet.
+
+## Code, Mermaid, équations et PDF
+
+La clé de langue fait partie du schéma Payload, pas seulement de la coloration. Utiliser `plaintext` pour le pseudo-code ou une langue non configurée ; les anciennes indications `text` et `json` ne correspondent pas à des choix du bloc Code déployé. Pour une équation, la valeur enregistrée est `latex`, pas `math`.
+
+```js
+code('flowchart LR\n  A[Écriture] --> B[Publication]', 'mermaid');
+code(String.raw`E = mc^2 \qquad \frac{a}{b}`, 'latex');
+// Le fichier doit d’abord avoir été réellement déposé ; reprendre l’URL retournée :
+inline('InlineResource', { title: 'Cours de mathématiques',
+  url: pdfURL, linkLabel: 'Télécharger le PDF' });
+```
+
+Ne pas ajouter de clôtures Markdown dans `fields.code`. Pour LaTeX, ne pas entourer la formule de `$`, `$$`, `\(` ou `\[`. Ne pas remplacer automatiquement un pseudo-code mathématique par du LaTeX : conserver le texte source sauf demande de conversion. Le blog et la preview rendent les blocs Mermaid/LaTeX ; en cas de syntaxe invalide, ils montrent le code et un message d’erreur. Sans JavaScript, la source reste lisible.
+
+Un PDF appartient à la bibliothèque Médias mais s’affiche comme **ressource téléchargeable**, pas comme une image : utiliser son URL, pas son ID, dans `InlineResource.url` ou `messages[].widgets[].url`. Les PDF locaux utilisent `download` ; un PDF externe dépend des règles du navigateur et du serveur distant.
 
 ## Modules après un message de session
 
@@ -115,4 +131,16 @@ message('assistant', 'Décision et raison.', { kind: 'note', widgets: [
 message('assistant', '', { kind: 'tool', code: '# Commande et résultat réel, expurgés' });
 ```
 
-Les formes `tool` et `note` restent une voix Agent. Ne pas utiliser `role: tool`, `role: terminal` ou une voix système supplémentaire. Le champ top-level `widgets` n’existe plus ; attacher les modules de session aux messages. Pour les messages ordinaires, utiliser des paragraphes, listes, liens et code inline dans `content`. Les blocs Code/Inline*/MemoryDiagram ont des convertisseurs personnalisés uniquement dans les articles ; utiliser `code` / `widgets` dans une session pour bénéficier du rendu établi.
+Les formes `tool` et `note` restent une voix Agent. Ne pas utiliser `role: tool`, `role: terminal` ou une voix système supplémentaire. Le champ top-level `widgets` n’existe plus ; attacher les modules de session aux messages. Pour les messages ordinaires, écrire le contenu complet dans `content`, avec ses paragraphes et ses blocs Code/Inline*/MemoryDiagram dans l’ordre de lecture : les convertisseurs sont maintenant aussi configurés sur `contentHTML`.
+
+```js
+message('assistant', rich(
+  p('Voici la construction :'),
+  code('note  = [x; z; compensation]\nquery = [αq; βg; 0]', 'plaintext'),
+  p('L’explication du résultat vient après la construction.'),
+));
+```
+
+`messages[].code` est une sortie distincte, placée **après tout `content`**, et son éditeur n’est visible que pour `kind: "tool"`. Le réserver aux tool calls. Pour plusieurs extraits ou un extrait suivi d’une explication, utiliser plusieurs blocs Code dans `content`, pas un champ `code` concaténant les extraits en fin de message. Les modules `messages[].widgets` viennent eux aussi après tout le message ; utiliser `inline(...)` dans `content` quand le placement entre paragraphes compte.
+
+Un message peut contenir uniquement des widgets. Une ressource encore vide dans le studio n’a pas d’URL à afficher : le validateur la signale avec son indice, sans inventer une URL ni supprimer un ajout humain. Les erreurs de validation du helper portent un chemin `messages[i]` (indice commençant à zéro). Le validateur vérifie la composition éditoriale ; certaines de ses restrictions, comme celle du champ `code` hors tool call, sont plus strictes que les champs techniquement acceptés par Payload.

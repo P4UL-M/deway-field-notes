@@ -4,8 +4,10 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { main, validate } from './blog.mjs';
-import { rich, p, inline, message, upload, editablePost } from './content.mjs';
+import { rich, p, inline, code, message, upload, editablePost } from './content.mjs';
 
 const article = () => ({ type: 'article', title: 'Titre', slug: 'test-post', summary: 'Résumé',
   publishedAt: '2026-10-10T10:00:00.000Z', body: rich(p('Texte')) });
@@ -50,11 +52,26 @@ test('offline validation accepts inline blocks and real media IDs; rejects compu
   assert.equal((await main(['validate', file])).valid, true);
 });
 
-test('sessions reject unsupported inline blocks and invisible top-level widgets', () => {
+test('sessions preserve blocks between paragraphs, reserve trailing code for tools, and reject invisible top-level widgets', () => {
   const data = { ...article(), type: 'session', messages: [message('user', 'Demande'), message('assistant', '', { kind: 'tool', code: '$ node --version' })] };
   assert.equal(validate(data), data);
-  assert.throws(() => validate({ ...data, messages: [message('assistant', rich(inline('Code', { code: 'x' })))] }), /convertisseurs/);
+  const content = rich(p('Avant'), code('x', 'plaintext'), p('Après'),
+    code('flowchart LR\nA --> B', 'mermaid'), code(String.raw`E = mc^2`, 'latex'));
+  const session = { ...data, messages: [message('assistant', content)] };
+  assert.equal(validate(session), session);
+  assert.deepEqual(content.root.children.map(node => node.type), ['paragraph', 'block', 'paragraph', 'block', 'block']);
+  assert.throws(() => validate({ ...data, messages: [message('assistant', 'Avant et après', { code: 'x' })] }), /messages\[0\].*après tout le message/);
+  assert.throws(() => validate({ ...data, messages: [message('assistant', rich({ type: 'code', version: 1, children: [] }))] }), /bloc Payload Code/);
   assert.throws(() => validate({ ...data, widgets: [{ widgetType: 'callout' }] }), /non éditable/);
+});
+
+test('resource URLs support uploaded PDF paths and widget-only messages, but identify unfinished rows', () => {
+  const resource = { widgetType: 'resource', url: '/api/media/file/cours.pdf', linkLabel: 'Télécharger' };
+  const data = { ...article(), type: 'session', messages: [message('assistant', null, { widgets: [resource] })] };
+  assert.equal(validate(data), data);
+  for (const url of ['javascript:alert(1)', '//elsewhere.test/file.pdf', '/\\elsewhere.test/file.pdf', null]) {
+    assert.throws(() => validate({ ...data, messages: [message('assistant', null, { widgets: [{ ...resource, url }] })] }), /messages\[0\].*widgets\[0\].*URL/);
+  }
 });
 
 test('new draft forces draft status, strips archived=false, and sends Lexical content', async t => {
@@ -123,6 +140,39 @@ test('upload supplies image MIME, alt metadata and file bytes', async t => {
   assert.equal((await main(['upload', file, 'Une capture'])).id, 12);
 });
 
+test('PDF upload supplies application/pdf, document title, and exact bytes', async t => {
+  env(t);
+  const { dir } = await fixture(t);
+  const file = join(dir, 'cours.PDF');
+  const bytes = Buffer.from('%PDF-1.4\nfixture bytes');
+  await writeFile(file, bytes);
+  api(t, async c => {
+    assert.equal(c.url.pathname, '/api/media');
+    const uploaded = c.body.get('file');
+    assert.equal(uploaded.type, 'application/pdf');
+    assert.equal(uploaded.name, 'cours.PDF');
+    assert.deepEqual(Buffer.from(await uploaded.arrayBuffer()), bytes);
+    assert.deepEqual(JSON.parse(c.body.get('_payload')), { alt: 'Cours mathématique' });
+    return json({ doc: { id: 15, url: 'https://blog.deway.fr/api/media/file/cours.PDF' } });
+  });
+  assert.equal((await main(['upload', file, 'Cours mathématique'])).id, 15);
+});
+
+test('HTTP validation errors expose field paths without echoing server messages or values, and never retry', async t => {
+  env(t);
+  const { file } = await fixture(t);
+  const calls = api(t, c => {
+    if (c.method === 'GET') return json({ docs: [], totalDocs: 0 });
+    return new Response(JSON.stringify({ errors: [{ message: 'private-server-detail', data: { errors: [
+      { path: 'messages.31.content', message: 'private-submitted-value' },
+      { path: '<unsafe path>', message: 'private-submitted-value' },
+    ] } }] }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  });
+  await assert.rejects(main(['draft', file]), error => /400.*messages\.31\.content/.test(error.message)
+    && !/private|unsafe/.test(error.message));
+  assert.equal(calls.filter(c => c.method === 'POST').length, 1);
+});
+
 test('login token is used in memory, never returned; HTTP failure is not retried', async t => {
   env(t, { BLOG_EMAIL: 'fake@example.org', BLOG_PASSWORD: 'fake-password' });
   delete process.env.BLOG_TOKEN;
@@ -162,8 +212,10 @@ test('SSH local mode disables schema push, invokes Payload hooks API and closes 
   await writeFile(join(moduleDir, 'payload/index.mjs'), `
     export async function getPayload({config}) {
       globalThis.__dewayConfig = config;
+      if (process.env.DEWAY_TEST_LINGER) setInterval(() => {}, 1000);
       return {
         find: async () => ({docs:[], totalDocs:0}),
+        findByID: async () => ({id:8,slug:'test-post',title:'x'.repeat(200000)}),
         create: async options => { globalThis.__dewayWrite = options; return {...options.data,id:8}; },
         destroy: async () => {globalThis.__dewayClosed = true;},
       };
@@ -173,9 +225,15 @@ test('SSH local mode disables schema push, invokes Payload hooks API and closes 
   t.mock.method(globalThis, 'fetch', () => assert.fail('local must not use HTTP'));
   assert.equal((await main(['draft', file])).id, 8);
   assert.equal(globalThis.__dewayConfig.db.push, false);
+  assert.equal(globalThis.__dewayConfig.logger.options.level, 'silent');
   assert.equal(globalThis.__dewayWrite.overrideAccess, true);
   assert.equal(globalThis.__dewayWrite.overrideLock, false);
   assert.equal(globalThis.__dewayWrite.draft, true);
   assert.equal(globalThis.__dewayClosed, true);
+  const { stdout, stderr } = await promisify(execFile)(process.execPath,
+    [new URL('./blog.mjs', import.meta.url).pathname, 'get', '8'],
+    { env: { ...process.env, DEWAY_TEST_LINGER: 'true' }, timeout: 5000, maxBuffer: 1000000 });
+  assert.equal(JSON.parse(stdout).title.length, 200000, 'Flush the entire JSON before exiting despite leftover runtime handles');
+  assert.equal(stderr, '');
   t.after(() => { delete globalThis.__dewayConfig; delete globalThis.__dewayWrite; delete globalThis.__dewayClosed; });
 });
