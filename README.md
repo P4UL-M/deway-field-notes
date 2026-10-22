@@ -78,6 +78,8 @@ Le blog et la Live Preview affichent le diagramme ou l’équation. Les moteurs 
 
 Pour un PDF, déposer le fichier dans **Médias**, copier son URL, puis la coller dans le champ **URL** du bloc **Ressource** existant (dans l’article ou les modules d’un message). Choisir par exemple « Télécharger le PDF » comme texte du lien. Une URL de PDF hébergé sur le blog déclenche le téléchargement ; pour un PDF externe, le comportement dépend du navigateur et du serveur distant.
 
+Les PDF servis par le blog portent l’en-tête HTTP `X-Robots-Tag: noindex`, ajouté par Nginx selon le type `application/pdf` ou le chemin terminé par `.pdf` (sans distinction de casse). Ils restent accessibles au téléchargement. Ne pas les bloquer dans `robots.txt` : les moteurs doivent pouvoir relire cet en-tête pour retirer les PDF déjà indexés. Ce retrait dépend de leur prochaine exploration ; l’outil de suppression de Google Search Console permet de demander un masquage plus rapide.
+
 Payload enregistre automatiquement les brouillons et permet de comparer ou restaurer les versions. Le site public ne reçoit que les publications ayant le statut `published`.
 
 ## Publication depuis une session d'agent
